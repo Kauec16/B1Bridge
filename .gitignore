@@ -1,0 +1,45 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+[Aa]rtifacts/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Visual Studio Code
+.vscode/
+
+# JetBrains Rider
+.idea/
+*.sln.iml
+
+# Test results and coverage
+TestResults/
+coverage/
+*.trx
+*.coverage
+*.coveragexml
+
+# NuGet packages
+*.nupkg
+*.snupkg
+packages/
+
+# Local environment files
+appsettings.Local.json
+appsettings.*.local.json
+
+# Local documentation
+/docs/
+
+# Certificates and local keys
+*.pfx
+*.p12
+
+# Operating system files
+.DS_Store
+Thumbs.db
