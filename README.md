@@ -1,2 +1,16 @@
 # B1Bridge
-Production-oriented .NET 10 integration gateway for SAP Business One Service Layer, centralizing internal integrations with Clean Architecture, asynchronous operation tracking, and extensible adapters.
+
+Modular integration platform for SAP Business One, built with .NET.
+
+## Current stage
+
+This branch establishes the initial solution structure. The integration flow, messaging, persistence, and SAP adapters will be implemented incrementally in the following branches.
+
+## Foundation
+
+- `B1Bridge.Api`: initial HTTP host for administration endpoints.
+- `B1Bridge.Application`: application use cases and orchestration boundaries.
+- `B1Bridge.Domain`: business rules and integration models.
+- `B1Bridge.Infrastructure`: external adapters and technical implementations.
+
+The current foundation intentionally contains no business integration endpoint yet.
