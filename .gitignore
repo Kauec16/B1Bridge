@@ -33,8 +33,10 @@ packages/
 appsettings.Local.json
 appsettings.*.local.json
 
-# Local documentation
-/docs/
+# Keep local notes private; version only the public documentation guides
+/docs/*
+!/docs/architecture.md
+!/docs/roadmap.md
 
 # Certificates and local keys
 *.pfx
