@@ -1,8 +1,13 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/B1Bridge.Agent/B1Bridge.Agent.csproj" />
+    <Project Path="src/B1Bridge.Contracts/B1Bridge.Contracts.csproj" />
     <Project Path="src/B1Bridge.Api/B1Bridge.Api.csproj" />
     <Project Path="src/B1Bridge.Application/B1Bridge.Application.csproj" />
     <Project Path="src/B1Bridge.Domain/B1Bridge.Domain.csproj" />
     <Project Path="src/B1Bridge.Infrastructure/B1Bridge.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/B1Bridge.Agent.Tests/B1Bridge.Agent.Tests.csproj" />
   </Folder>
 </Solution>

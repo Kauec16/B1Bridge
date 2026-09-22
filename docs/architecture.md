@@ -6,7 +6,15 @@
 
 O B1Bridge tem foco em integrações com o SAP Business One Service Layer. Qualquer sistema externo autorizado poderá originar solicitações por meio de um agente; marketplace é apenas um exemplo de origem.
 
-A solução atual contém quatro projetos .NET 10, o host HTTP e a CI. As responsabilidades e os fluxos abaixo orientam a implementação futura. Ainda não há agente, consumidores RabbitMQ, persistência ou cliente SAP nesta base.
+A solução atual contém as quatro camadas .NET 10 do B1Bridge, o agente HTTP, contratos compartilhados, testes unitários do agente e a CI. O agente já publica solicitações no RabbitMQ. Consumidores, persistência, cliente SAP e retorno de resultados ainda serão implementados.
+
+### Fluxo disponível
+
+O controller do agente recebe `GET`, `POST`, `PUT`, `PATCH` e `DELETE`, valida a sintaxe do JSON e monta um `IntegrationRequest` com método, caminho, query e payload. Ele gera `operationId`, preserva `X-Correlation-Id` e `Idempotency-Key` quando fornecidos e preenche os identificadores ausentes. O transporte da chave ainda não implementa idempotência.
+
+O publisher declara uma exchange direct durável, uma fila durável e o binding configurado, publica mensagens persistentes com `mandatory` e aguarda a confirmação do broker. O controller retorna `202 Accepted` após essa publicação. Essa confirmação não representa persistência de uma operação no banco do B1Bridge nem execução no SAP.
+
+`IntegrationResult` já existe como contrato, mas nenhum componente publica, consome ou entrega resultados nesta versão. O agente também não autentica a entrada HTTP. Os testes do controller usam um publisher em memória e cobrem o envelope/aceite, os identificadores e a rejeição de JSON inválido. Os testes do publisher cobrem a inicialização concorrente e a falha na preparação da topologia com substitutos para a conexão e o canal; não validam um broker real.
 
 ## Limites dos componentes
 
@@ -31,14 +39,19 @@ flowchart TD
     Api --> Infrastructure["B1Bridge.Infrastructure"]
     Infrastructure --> Application
     Application --> Domain["B1Bridge.Domain"]
+    Agent["B1Bridge.Agent"] --> Contracts["B1Bridge.Contracts"]
+    AgentTests["B1Bridge.Agent.Tests"] --> Agent
+    AgentTests --> Contracts
 ```
 
 - **Api:** compõe a aplicação, configura o host e inicializa os serviços necessários. Não concentra regras de operação ou chamadas SAP.
 - **Application:** coordena os casos de uso e define os contratos de persistência, execução externa e mensageria que esses casos exigirem.
 - **Domain:** protege regras de integração, invariantes e transições válidas de estado. Não conhece HTTP, RabbitMQ, banco ou SDK do SAP.
 - **Infrastructure:** implementa os adaptadores técnicos. Consumidores traduzem mensagens em chamadas à aplicação, evitando que as regras do ciclo de vida fiquem presas ao transporte.
+- **Agent:** recebe HTTP e publica solicitações através de `IRabbitMqPublisher`; seu adaptador RabbitMQ pertence ao próprio agente e não depende do host B1Bridge.
+- **Contracts:** contém `IntegrationRequest`, `IntegrationResult` e `RouteInfo`, sem dependência de RabbitMQ ou SAP. O contrato de resultado ainda não possui fluxo implementado.
 
-A estrutura segue Clean Architecture. Conceitos de DDD serão usados quando houver regras que justifiquem seu uso. Um projeto de contratos compartilhados e projetos de testes serão introduzidos junto dos comportamentos que precisarem deles.
+A estrutura segue Clean Architecture. Conceitos de DDD serão usados quando houver regras que justifiquem seu uso. O projeto compartilhado de contratos e os testes do agente já acompanham a publicação HTTP/RabbitMQ; os testes de domínio e de infraestrutura serão introduzidos junto dos respectivos comportamentos.
 
 ## Ciclo de uma operação: desenho pretendido
 
@@ -62,7 +75,7 @@ O formato e o escopo da chave de idempotência ainda serão definidos. A compara
 4. O estado da tentativa, o resultado e a intenção de publicar a resposta são persistidos juntos, usando a outbox quando necessário.
 5. O resultado é publicado com os identificadores originais. O agente o correlaciona e entrega ao sistema de origem conforme seu contrato.
 
-Os nomes finais dos estados, o contrato das mensagens, as filas e as políticas de retenção serão definidos nas respectivas entregas. Não existe uma transação única abrangendo banco, RabbitMQ e SAP.
+Os envelopes iniciais e a fila de solicitações já existem. O versionamento das mensagens, os nomes finais dos estados, a topologia de resultados e as políticas de retenção serão definidos nas respectivas entregas. Não existe uma transação única abrangendo banco, RabbitMQ e SAP.
 
 ## Falhas, duplicatas e reprocessamento
 
@@ -88,12 +101,14 @@ SQLite é o ponto de partida proposto para desenvolvimento local. A escolha do b
 
 As migrations técnicas pertencerão ao banco do B1Bridge. Campos ou tabelas adicionais no SAP só serão avaliados quando uma necessidade de negócio ou de correlação com a operação SAP justificar seu uso.
 
-A implantação deverá definir autenticação própria para o agente, permissões mínimas no broker, isolamento entre clientes e proteção do transporte. Credenciais do SAP ficarão exclusivamente no ambiente do B1Bridge, fornecidas por mecanismos de configuração seguros.
+A conexão do agente com o broker aceita configuração por host/porta/usuário/senha ou por URI, incluindo `amqps://`. A URI tem prioridade quando preenchida. A configuração local e as formas de fornecer segredos estão no [README](../README.md#configuração-e-segurança).
+
+A implantação ainda deverá definir autenticação própria para a entrada HTTP do agente, permissões mínimas no broker e isolamento entre clientes. Credenciais do SAP ficarão exclusivamente no ambiente do B1Bridge, fornecidas por mecanismos de configuração seguros.
 
 ## Decisões ainda abertas
 
-- Hospedagem do RabbitMQ, topologia e isolamento de mensagens por cliente/agente.
-- Contrato entre sistema externo e agente, incluindo aceite assíncrono e entrega de resultados.
+- Hospedagem do RabbitMQ, evolução da topologia inicial e isolamento de mensagens por cliente/agente.
+- Autenticação da entrada HTTP e contrato de entrega de resultados ao sistema externo.
 - Versionamento das mensagens, identificadores e escopo da idempotência.
 - Primeira operação SAP e reconciliação de resultados incertos.
 - Provedor de persistência para produção e política de retenção.

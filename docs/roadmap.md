@@ -11,7 +11,17 @@ Este plano considera a base atual do novo repositório. Uma implementação expe
 - [x] Remoção dos artefatos e testes de exemplo do template.
 - [x] CI com restore, build e etapa de execução de testes.
 
-Ainda não há projetos de teste: a presença da etapa na CI não representa uma suíte implementada. O README e o guia de arquitetura acompanham este plano; funcionalidades só devem mudar de planejadas para disponíveis junto de sua implementação verificada.
+O README e o guia de arquitetura acompanham este plano. Os testes atuais exercitam a entrada do agente e a inicialização do publisher sem broker real; os próximos testes deverão acompanhar as regras de domínio e a integração com infraestrutura.
+
+## Agente e contratos disponíveis
+
+- [x] Projetos `B1Bridge.Agent`, `B1Bridge.Contracts` e `B1Bridge.Agent.Tests` integrados à solução.
+- [x] Entrada HTTP genérica com envelope de rota, payload e identificadores.
+- [x] Publicação no RabbitMQ com mensagem persistente, topologia durável e confirmação do broker.
+- [x] Configuração do broker por opções ou URI, incluindo `amqps://`.
+- [x] Testes unitários do controller com publisher em memória e da inicialização concorrente e falha de preparação do publisher.
+
+Esta entrega cobre a entrada HTTP e a publicação da solicitação. `IntegrationResult` existe como contrato, mas o fluxo de retorno ainda não existe. Autenticação de entrada, consumidor, persistência, idempotência, outbox e SAP permanecem pendentes. A validação com RabbitMQ real deve ser acrescentada aos testes; os testes atuais não cobrem transporte ou reconexão com o broker.
 
 ## 1. Ciclo de vida da operação
 
@@ -27,7 +37,7 @@ Ainda não há projetos de teste: a presença da etapa na CI não representa uma
 
 ## 3. Contratos, mensageria e outbox
 
-**Entrega:** definir mensagens versionadas de requisição e resultado, integrar RabbitMQ e implementar a passagem consistente entre persistência e publicação. Criar uma biblioteca compartilhada de contratos somente se os consumidores precisarem dela.
+**Entrega:** versionar os contratos iniciais de requisição e resultado, implementar o consumidor RabbitMQ e a passagem consistente entre persistência e publicação. Aproveitar `B1Bridge.Contracts` e a publicação já existente no agente, definindo também a topologia e a entrega dos resultados.
 
 **Critério de conclusão:** demonstrar o recebimento durável, o processamento e a publicação do resultado; testar redelivery, reinício entre etapas e indisponibilidade do broker. A confirmação da requisição precisa respeitar o limite de persistência definido na arquitetura.
 
@@ -35,11 +45,11 @@ O executor poderá ser controlado em testes nessa etapa. A entrega ainda não re
 
 ## 4. Primeiro fluxo SAP e agente
 
-**Entrega:** escolher uma operação SAP concreta e seu contrato, implementar autenticação/sessão do Service Layer, o adaptador tipado e o agente mínimo necessário para uma demonstração ponta a ponta.
+**Entrega:** escolher uma operação SAP concreta e seu contrato, implementar autenticação/sessão do Service Layer, o adaptador tipado e completar o agente com autenticação de entrada e entrega correlacionada dos resultados para uma demonstração ponta a ponta.
 
 **Critério de conclusão:** em ambiente controlado, uma solicitação de um sistema externo atravessa agente e broker, gera um resultado verificável no SAP e retorna correlacionada. Demonstrar sucesso, erro funcional e tratamento de resposta incerta. O agente não recebe credenciais nem acesso direto ao SAP.
 
-O agente e o adaptador podem ser entregues em pull requests separados, aproveitando os contratos definidos na etapa anterior.
+As próximas capacidades do agente e o adaptador SAP podem ser entregues em pull requests separados, aproveitando os contratos definidos na etapa anterior.
 
 ## 5. Tratamento operacional de falhas
 

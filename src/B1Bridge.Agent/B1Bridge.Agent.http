@@ -1,0 +1,12 @@
+@B1Bridge.Agent_HostAddress = http://localhost:9898
+
+POST {{B1Bridge.Agent_HostAddress}}/CriacaoItem/A123
+Content-Type: application/json
+X-Correlation-Id: corr-456
+Idempotency-Key: external-request-789
+
+{
+  "name": "Produto teste"
+}
+
+###
